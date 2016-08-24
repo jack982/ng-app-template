@@ -1,0 +1,24 @@
+{
+  "name": "ng-app-template",
+  "description": "A blank AngularJS 1.x application template",
+  "main": "index.js",
+  "authors": [
+    "Jacopo Penazzi"
+  ],
+  "license": "ISC",
+  "moduleType": [],
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "src/main/webapp/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "^1.5.8",
+    "font-awesome": "fontawesome#^4.6.3",
+    "angular-ui-router": "ui-router#^0.3.1"
+  }
+}

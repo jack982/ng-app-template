@@ -1,0 +1,20 @@
+{
+  "name": "ng-app-template",
+  "version": "1.0.0",
+  "description": "A blank AngularJS 1.x application template",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jacopo Penazzi",
+  "license": "ISC",
+  "dependencies": {
+    "browser-sync": "^2.14.0",
+    "browserify": "^13.1.0",
+    "dotenv": "^2.0.0",
+    "gulp": "^3.9.1",
+    "gulp-bower": "0.0.13",
+    "gulp-ng-config": "^1.3.1",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}
