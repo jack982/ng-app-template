@@ -13,20 +13,32 @@ if (ENV === 'development') {
 var gulp = require('gulp'),
     //jade = require('gulp-jade'),
     //less = require('gulp-less'),
+    pkg  = require('./package.json'),
+    uglify = require('gulp-uglify'),
+    concat = require('gulp-concat'),
     bower = require('gulp-bower'),
     browserify = require('browserify'),
     browserSync = require('browser-sync'),
     gutil = require('gulp-util'),
+    inject = require('gulp-inject'),
+    clean = require('gulp-clean'),
     source = require('vinyl-source-stream'),
+    buffer = require('vinyl-buffer'),
     ngConfig = require('gulp-ng-config'),
     path = require('path'),
     fs = require('fs'),
+    livereload = require('gulp-livereload'),
     config = require('./config.js'),
     paths = {
+        bower : {
+          path: 'bower_components', 
+            config: 'bower_config.json'
+        },
         public: {
             path: 'public/',
             script: './public/js/',
-            lib: './public/lib/'
+            lib: './public/assets/vendors/',
+            index: './public/index.html'
         },
         app: {
             //jade: ['!app/shared/**', 'app/**/*.jade'],
@@ -36,9 +48,27 @@ var gulp = require('gulp'),
                 '!app/images/**/*',
                 'app/**/*.*'
             ],
-            scripts: {
-                app: './app/scripts/app.module.js',
-                all: './app/scripts/**/*.js'
+            components: {
+                app: './app/app.module.js',
+                js: './app/components/**/*.js',
+                views: './app/components/**/*.html'
+            },
+            index: './app/index.html'
+        },
+        js: {
+            vendors : [
+                'app/assets/js/demo.js',
+                'bower_components/angular/angular.min.js',
+                'bower_components/angular-ui-router/angular-ui-router.min.js'
+            ],
+            app: [
+                'app/components/**/*.js'
+            ]
+        },
+        dest: {
+            js: {
+                vendor: 'vendor.js',
+                application: 'application.js'
             }
         }
     },
@@ -50,25 +80,28 @@ var gulp = require('gulp'),
 
 
 //
-gulp.task('ng-config', function() {
+gulp.task('ng-config', ['clean'], function() {
     makeJson(config[ENV], './config.json');
-    gulp.src('./config.json')
+    return gulp.src('./config.json')
         .pipe(
-            ngConfig('ng-app-template.config', {
+            ngConfig('config.module', {
                 constants: config[ENV],
-                createModule: false
+                createModule: true
             })
         )
-        .pipe(gulp.dest('./app/scripts/'))
+        .pipe(gulp.dest('./app/components/shared'))
 });
 
-gulp.task('browser-sync', ['build', 'watch'], function() {
+
+gulp.task('browser-sync' /*, ['build', 'watch']*/, function() {
     browserSync({
         server: {
-            baseDir: 'public/'
+            baseDir: 'public/',
+            index: 'index.html'
         }
     });
 });
+
 
 /*
 gulp.task('jade', function() {
@@ -88,26 +121,83 @@ gulp.task('less', function() {
 });
 */
 
-
-gulp.task('bower', function() {
-    return bower({ 'directory': paths.public.lib });
+gulp.task('uglify', function() {
+/*    gulp.src( paths.js.vendors )
+        .pipe( concat(paths.dest.js.vendor) )
+        .pipe(uglify())
+        .pipe(gulp.dest('public/assets/vendors'));
+        */
 });
 
 
-gulp.task('browserify', ['ng-config'], function() {
-    return browserify(paths.app.scripts.app).bundle()
+gulp.task('watch', function() {
+    var server = livereload();
+    
+   gulp.watch( paths.js.app, ['browserify']);
+   gulp.watch( paths.js.vendors, ['uglify']).on('change', function(file){
+       server.changed(file.path);
+   });
+});
+
+
+gulp.task('index', ['clean', 'bower', 'browserify', 'views'], function () {
+    var target = gulp.src( paths.app.index );
+    // It's not necessary to read the files (will speed up things), we're only after their paths:
+    var sources = gulp.src(['public/assets/js/*.js',
+                                'public/assets/vendors/**/*.min.js',
+                                'public/app/application.js',
+                                'public/assets/css/*.css'
+                                
+    ], {read: false});
+
+    return target.pipe(inject(sources,   {
+            ignorePath: 'public',
+            addRootSlash: false
+        }))
+        .pipe(gulp.dest( 'public/' ));
+});
+
+gulp.task('assets', ['clean'], function() {
+   return gulp.src('./app/assets/**')
+       .pipe(gulp.dest( './public/assets' ));
+});
+
+gulp.task('clean', function() {
+   return gulp.src( 'public', {read:false})
+        .pipe(clean());
+});
+
+gulp.task('views', ['clean'], function() {
+    return gulp.src(paths.app.components.views, { base: './' })
+        .pipe(gulp.dest( paths.public.path ));
+});
+
+gulp.task('bower', ['clean'], function() {
+   
+     return bower({ 'directory': paths.bower.path })
+        .pipe(gulp.dest( paths.public.lib ))
+});
+
+
+gulp.task('browserify', ['clean'], function() {
+    return browserify(paths.app.components.app).bundle()
         .on('success', gutil.log.bind(gutil, 'Browserify Rebundled'))
         .on('error', gutil.log.bind(gutil, 'Browserify ' +
             'Error: in browserify gulp task'))
         .pipe(source('application.js'))
-        .pipe(gulp.dest('./public/js/'));
+       // .pipe(buffer())
+       // .pipe(uglify())
+        .pipe(gulp.dest('public/app/'));
 });
 
+/*
 gulp.task('watch', ['build'], function() {
-    gulp.watch(paths.app.jade, ['jade']);
-    gulp.watch(paths.app.styles, ['less']);
-    gulp.watch(paths.app.scripts.all, ['browserify']);
+    //gulp.watch(paths.app.jade, ['jade']);
+    //gulp.watch(paths.app.styles, ['less']);
+    gulp.watch(paths.app.components.js, ['browserify']);
 });
+*/
 
-gulp.task('build', ['ng-config', /*'jade', 'less',*/ 'browserify', 'bower']);
-gulp.task('default', ['browser-sync', 'watch', 'build']);
+gulp.task('build', ['ng-config', 'assets', 'uglify', 'index'  /*'jade', 'less','browserify' , 'bower'*/]);
+//gulp.task('default', ['browser-sync', 'moveViews', 'watch', 'build']);
+gulp.task('default', ['browser-sync', 'build']);

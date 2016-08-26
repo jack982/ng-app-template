@@ -1,8 +1,11 @@
 'use strict';
 
-angular.module('home.module', 
+require('../shared/config.js');
+
+angular.module('home.module',
 	[
-        'ui.router'
+        'ui.router',
+        'config.module'
 	]
 )
   .config(function ($stateProvider, $urlRouterProvider) {
@@ -11,7 +14,7 @@ angular.module('home.module',
         url: '/home',
         views: {
           'main': {
-            templateUrl: 'scripts/components/home/home.tpl.html',
+            templateUrl: '/app/components/home/home.tpl.html',
             controller: 'HomeController',
             controllerAs: 'ctrl'
           }
